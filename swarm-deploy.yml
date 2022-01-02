@@ -6,11 +6,6 @@ services:
     environment:
       - AUTOSCALER_DNSNAME=tasks.autoscaler
       - AUTOSCALER_INTERVAL=60
-    ports:
-     - target: 80
-       published: 3800
-       protocol: tcp
-       mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
