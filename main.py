@@ -8,18 +8,26 @@ import time
 import statistics
 import logging
 
-MIN_PERCENTAGE = 25.0
-MAX_PERCENTAGE = 80.0
+# Configuration
+MIN_PERCENTAGE = float(os.getenv("AUTOSCALER_MIN_PERCENTAGE")) if os.getenv("AUTOSCALER_MIN_PERCENTAGE") else 25.0
+MAX_PERCENTAGE = float(os.getenv("AUTOSCALER_MAX_PERCENTAGE")) if os.getenv("AUTOSCALER_MAX_PERCENTAGE") else 85.0
 DISCOVERY_DNSNAME = os.getenv("AUTOSCALER_DNSNAME") if os.getenv("AUTOSCALER_DNSNAME") else 'tasks.autoscaler'
 CHECK_INTERVAL = int(os.getenv("AUTOSCALER_INTERVAL")) if os.getenv("AUTOSCALER_INTERVAL") else 60*5 # Default 5 minutes
+DRY_RUN = bool(os.getenv("AUTOSCALER_DRYRUN"))
 
+# Initialize
 App = Flask(__name__)
-SwarmService = DockerService()
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+SwarmService = DockerService(DRY_RUN)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', level=logging.DEBUG)
 
+# Import controllers
 from container_controller import *
 
+
 def autoscallerLoop():
+    """
+        Main loop where getting services with enabled autoscale mode and calculate cpu utilization for scale service
+    """
     global DISCOVERY_DNSNAME, CHECK_INTERVAL
     logging.info("Running autoscale loop")
     discovery = Discovery(DISCOVERY_DNSNAME)
@@ -46,6 +54,9 @@ def autoscallerLoop():
         time.sleep(CHECK_INTERVAL)
 
 def tryScale(service, stats):
+    """
+        Method where calculate mean cpu percentage of service replicas and inc or dec replicas count
+    """
     global MAX_PERCENTAGE, MIN_PERCENTAGE
     meanCpu = statistics.mean(stats)
     logging.debug("Mean cpu for service=%s : %s",service.name,meanCpu)
