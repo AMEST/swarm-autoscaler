@@ -1,3 +1,4 @@
+[![Autoscaller Build](https://github.com/AMEST/swarm-autoscaler/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/AMEST/swarm-autoscaler/actions/workflows/main.yml)
 ![hub.docker.com](https://img.shields.io/docker/pulls/eluki/swarm-service-autoscaler.svg)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/amest/swarm-autoscaler)
 
