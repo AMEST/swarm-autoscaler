@@ -1,0 +1,87 @@
+#!/bin/python
+import docker
+from datetime import datetime
+import logging
+
+class DockerService(object):
+    AutoscaleLabel = 'swarm.autoscale'
+    MaxReplicasLabel = 'swarm.autoscale.max'
+    MinReplicasLabel = 'swarm.autoscale.min'
+
+    def __init__(self):
+        self.dockerClient = docker.from_env()
+        self.nodeInfo = self.dockerClient.info()
+
+    def isManager(self):
+        try:
+            self.dockerClient.nodes.list()
+            return True
+        except:
+            return False
+
+    def isLeader(self):
+        if(not self.isManager()):
+            return False
+        nodeList = self.dockerClient.nodes.list()
+        nodeAddr = self.nodeInfo['Swarm']['NodeAddr']
+        managerLeader = list(x for x in nodeList if x.attrs['ManagerStatus']['Leader'])[0]
+        return managerLeader.attrs['ManagerStatus']['Addr'].startswith(nodeAddr)
+
+    def getAutoscaleServices(self):
+        allServices = self.dockerClient.services.list(filters={'label':self.AutoscaleLabel})
+        if(len(allServices) == 0):
+            return None
+        enabledAutoscaleServices = list((x for x in allServices if x.attrs['Spec']['Labels'][self.AutoscaleLabel] == 'true'))
+        return enabledAutoscaleServices
+
+    def getServiceContainersId(self, service):
+        tasks = service.tasks({'desired-state':'running'})
+        if(len(tasks) == 0):
+            return None
+        return list((x['Status']['ContainerStatus']['ContainerID'] for x in tasks))
+
+    def getContainerCpuStat(self, containerId, cpuLimit):
+        containers = self.dockerClient.containers.list(filters={'id':containerId})
+        if(len(containers) == 0):
+            return None
+        firstStats = containers[0].stats(stream=False)
+        return self.calculateCpu(firstStats, cpuLimit)
+
+    def scaleService(self, service, scaleIn = True):
+        replicated = service.attrs['Spec']['Mode'].get('Replicated')
+        if(replicated == None):
+            logging.error("Cannot scale service %s because is not replicated mode", service.name)
+            return
+
+        maxReplicas = service.attrs['Spec']['Labels'].get(self.MaxReplicasLabel)
+        maxReplicas = 15 if maxReplicas == None else int(maxReplicas)
+
+        minReplicas = service.attrs['Spec']['Labels'].get(self.MinReplicasLabel)
+        minReplicas = 2 if minReplicas == None else int(minReplicas)
+
+        replicas = replicated['Replicas']
+        newReplicasCount = replicas + 1 if scaleIn else replicas - 1
+        if(newReplicasCount <= maxReplicas and newReplicasCount >= minReplicas and replicas != newReplicasCount):
+            logging.info("Scale service %s to %s",service.name, newReplicasCount)
+            service.scale(newReplicasCount)
+        
+    def calculateCpu(self, stats, cpuLimit):
+        percent = 0.0
+        cpuCount = stats['cpu_stats']['online_cpus']
+        cpuDelta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
+        systemDelta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
+        if( cpuDelta > 0.0 and systemDelta > 0.0 ):
+            percent = (cpuDelta / systemDelta) * len(stats['precpu_stats']['cpu_usage']['percpu_usage']) * 100.0
+        
+        # Correction of the percentage of workload given the limit or, in its absence, the number of CPUs to get a value in the range of 0 - 100
+        if(cpuLimit > 0):
+            percent = percent / cpuLimit
+        else:
+            percent = percent / cpuCount
+        return percent
+
+    def getServiceCpuLimitPercent(self, service):
+        try:
+            return service.attrs.get('Spec').get('TaskTemplate').get('Resources').get('Limits').get('NanoCPUs')/10000000/100
+        except:
+            return -1.0

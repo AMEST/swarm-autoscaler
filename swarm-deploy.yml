@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  autoscaler:
+    image: autoscaler:latest
+    environment:
+      - AUTOSCALER_DNSNAME=tasks.autoscaler
+      - AUTOSCALER_INTERVAL=60
+    ports:
+     - target: 80
+       published: 3800
+       protocol: tcp
+       mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 100M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "3m"
+        max-file: "3"
