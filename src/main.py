@@ -38,6 +38,7 @@ def autoscallerLoop():
                 time.sleep(60*10) # Wait 10 minute
                 continue
             services = SwarmService.getAutoscaleServices()
+            services = services if services != None else []
             logging.debug("Services len: %s", len(services))
             for service in services:
                 cpuLimit = SwarmService.getServiceCpuLimitPercent(service)
