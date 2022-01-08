@@ -13,8 +13,13 @@ DISCOVERY_DNSNAME = os.getenv("AUTOSCALER_DNSNAME") if os.getenv("AUTOSCALER_DNS
 CHECK_INTERVAL = int(os.getenv("AUTOSCALER_INTERVAL")) if os.getenv("AUTOSCALER_INTERVAL") else 60*5 # Default 5 minutes
 DRY_RUN = bool(os.getenv("AUTOSCALER_DRYRUN"))
 
-# Initialize
+# Configure Logging
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', level=logging.DEBUG)
+
+logging.getLogger("urllib3").setLevel(logging.INFO)
+logging.getLogger("werkzeug").setLevel(logging.INFO)
+
+# Initialize
 App = Flask(__name__)
 MemoryCache = Cache()
 SwarmService = DockerService(MemoryCache, DRY_RUN)
