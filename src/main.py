@@ -18,6 +18,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s
 
 logging.getLogger("urllib3").setLevel(logging.INFO)
 logging.getLogger("werkzeug").setLevel(logging.INFO)
+logging.getLogger("docker").setLevel(logging.INFO)
 
 # Initialize
 App = Flask(__name__)
