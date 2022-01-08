@@ -2,6 +2,7 @@ from flask import Flask
 from autoscaler_service import AutoscalerService
 from docker_service import DockerService
 from discovery import Discovery
+from cache import Cache
 import os
 import logging
 
@@ -14,8 +15,9 @@ DRY_RUN = bool(os.getenv("AUTOSCALER_DRYRUN"))
 
 # Initialize
 App = Flask(__name__)
+MemoryCache = Cache()
 SwarmService = DockerService(DRY_RUN)
-DiscoveryService = Discovery(DISCOVERY_DNSNAME)
+DiscoveryService = Discovery(DISCOVERY_DNSNAME, MemoryCache, CHECK_INTERVAL)
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', level=logging.DEBUG)
 
 # Import controllers

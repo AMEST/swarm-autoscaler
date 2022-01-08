@@ -30,12 +30,12 @@ class AutoscalerService(threading.Thread):
                 services = self.swarmService.getAutoscaleServices()
                 services = services if services != None else []
                 logging.debug("Services len: %s", len(services))
-                self.autoscaleServicePool.map(self.autoscale, services)    
+                self.autoscaleServicePool.map(self.__autoscale, services)    
             except Exception as e:
                 logging.error("Error in autoscale thread", exc_info=True)
             time.sleep(self.checkInterval)
 
-    def autoscale(self, service):
+    def __autoscale(self, service):
         cpuLimit = self.swarmService.getServiceCpuLimitPercent(service)
         containers = self.swarmService.getServiceContainersId(service)
         stats = []
@@ -44,9 +44,9 @@ class AutoscalerService(threading.Thread):
             if(containerStats != None):
                 stats.append(containerStats['cpu'])
         if(len(stats) > 0):
-            self.scale(service, stats)
+            self.__scale(service, stats)
 
-    def scale(self, service, stats):
+    def __scale(self, service, stats):
         """
             Method where calculate mean cpu percentage of service replicas and inc or dec replicas count
         """

@@ -41,12 +41,18 @@ class DockerService(object):
             return None
         return list((x['Status']['ContainerStatus']['ContainerID'] for x in tasks))
 
+    def getServiceCpuLimitPercent(self, service):
+        try:
+            return service.attrs.get('Spec').get('TaskTemplate').get('Resources').get('Limits').get('NanoCPUs')/10000000/100
+        except:
+            return -1.0
+
     def getContainerCpuStat(self, containerId, cpuLimit):
         containers = self.dockerClient.containers.list(filters={'id':containerId})
         if(len(containers) == 0):
             return None
         firstStats = containers[0].stats(stream=False)
-        return self.calculateCpu(firstStats, cpuLimit)
+        return self.__calculateCpu(firstStats, cpuLimit)
 
     def scaleService(self, service, scaleIn = True):
         replicated = service.attrs['Spec']['Mode'].get('Replicated')
@@ -54,7 +60,7 @@ class DockerService(object):
             logging.error("Cannot scale service %s because is not replicated mode", service.name)
             return
         
-        maxReplicasPerNode = self.getServiceMaxReplicasPerNode(service)
+        maxReplicasPerNode = self.__getServiceMaxReplicasPerNode(service)
         nodeCount = len(self.dockerClient.nodes.list())
 
         maxReplicas = service.attrs['Spec']['Labels'].get(self.MaxReplicasLabel)
@@ -84,7 +90,7 @@ class DockerService(object):
             
         service.scale(newReplicasCount)
         
-    def calculateCpu(self, stats, cpuLimit):
+    def __calculateCpu(self, stats, cpuLimit):
         percent = 0.0
         cpuCount = stats['cpu_stats']['online_cpus']
         cpuDelta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
@@ -99,14 +105,8 @@ class DockerService(object):
             percent = percent / cpuCount
         return percent
 
-    def getServiceMaxReplicasPerNode(self, service):
+    def __getServiceMaxReplicasPerNode(self, service):
         try:
             return service.attrs.get('Spec').get('TaskTemplate').get('Placement').get('MaxReplicas')
         except:
             return None
-
-    def getServiceCpuLimitPercent(self, service):
-        try:
-            return service.attrs.get('Spec').get('TaskTemplate').get('Resources').get('Limits').get('NanoCPUs')/10000000/100
-        except:
-            return -1.0
