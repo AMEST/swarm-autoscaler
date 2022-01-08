@@ -14,11 +14,11 @@ CHECK_INTERVAL = int(os.getenv("AUTOSCALER_INTERVAL")) if os.getenv("AUTOSCALER_
 DRY_RUN = bool(os.getenv("AUTOSCALER_DRYRUN"))
 
 # Initialize
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', level=logging.DEBUG)
 App = Flask(__name__)
 MemoryCache = Cache()
-SwarmService = DockerService(DRY_RUN)
+SwarmService = DockerService(MemoryCache, DRY_RUN)
 DiscoveryService = Discovery(DISCOVERY_DNSNAME, MemoryCache, CHECK_INTERVAL)
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', level=logging.DEBUG)
 
 # Import controllers
 from container_controller import *

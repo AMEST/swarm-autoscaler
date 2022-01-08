@@ -57,8 +57,9 @@ _**The application is configured through environment variables**_
 
 _**Services in docker swarm are configured via labels**_
 
-| Setting                | Value   | Description                                                                                                                |
-| ---------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `swarm.autoscale`     | `true`  | Required. This enables autoscaling for a service. Anything other than `true` will not enable it                            |
-| `swarm.autoscale.min` | Integer | Optional. This is the minimum number of replicas wanted for a service. The autoscaler will not downscale below this number |
-| `swarm.autoscale.max` | Integer | Optional. This is the maximum number of replicas wanted for a service. The autoscaler will not scale up past this number   |
+| Setting                                   | Value   | Default | Description                                                                                                                                                                                |
+| ----------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `swarm.autoscale`                         | Boolean | `false` | Required. This enables autoscaling for a service. Anything other than `true` will not enable it                                                                                            |
+| `swarm.autoscale.min`                     | Integer | `2`     | Optional. This is the minimum number of replicas wanted for a service. The autoscaler will not downscale below this number                                                                 |
+| `swarm.autoscale.max`                     | Integer | `15`    | Optional. This is the maximum number of replicas wanted for a service. The autoscaler will not scale up past this number                                                                   |
+| `swarm.autoscale.disable-manual-replicas` | Boolean | `false` | Optional. Disable manual control of replicas. It will no longer be possible to manually set the number of replicas more or less than the limit. Anything other than `true` will not enable |
