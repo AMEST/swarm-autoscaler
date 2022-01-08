@@ -8,7 +8,7 @@ class DockerService(object):
     MaxReplicasLabel = 'swarm.autoscale.max'
     MinReplicasLabel = 'swarm.autoscale.min'
 
-    def __init__(self, dryRun):
+    def __init__(self, dryRun: bool):
         self.dryRun = dryRun
         self.dockerClient = docker.from_env()
         self.nodeInfo = self.dockerClient.info()
