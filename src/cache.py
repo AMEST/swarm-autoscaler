@@ -3,7 +3,8 @@
 # A simple memory cache library
 # Author: Craig Russell <craig@craig-russell.co.uk>
 #
-
+# =============
+# Sources from: https://gist.github.com/craig552uk/dc93ae5578a59a338d96
 import time
 
 class Cache(object):
