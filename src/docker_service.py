@@ -14,6 +14,7 @@ class DockerService(object):
         self.dryRun = dryRun
         self.dockerClient = docker.from_env()
         self.nodeInfo = self.dockerClient.info()
+        self.logger = logging.getLogger("DockerService")
 
     def isManager(self):
         try:
@@ -59,7 +60,7 @@ class DockerService(object):
     def scaleService(self, service, scaleIn = True):
         replicated = service.attrs['Spec']['Mode'].get('Replicated')
         if(replicated == None):
-            logging.error("Cannot scale service %s because is not replicated mode", service.name)
+            self.logger.error("Cannot scale service %s because is not replicated mode", service.name)
             return
         
         maxReplicasPerNode = self.__getServiceMaxReplicasPerNode(service)
@@ -76,7 +77,7 @@ class DockerService(object):
         replicas = replicated['Replicas']
         newReplicasCount = replicas + 1 if scaleIn else replicas - 1
         if(maxReplicasPerNode != None and maxReplicasPerNode != 0 and (nodeCount * maxReplicasPerNode) < newReplicasCount):
-            logging.warning("There is no required number of nodes to host service (%s) instances. Nodes: %s. MaxReplicasPerNode: %s", service.name, nodeCount, maxReplicasPerNode)
+            self.logger.warning("There is no required number of nodes to host service (%s) instances. Nodes: %s. MaxReplicasPerNode: %s", service.name, nodeCount, maxReplicasPerNode)
             return
 
         if(disableManualReplicas):
@@ -86,15 +87,15 @@ class DockerService(object):
                 newReplicasCount = maxReplicas
 
         if(replicas == newReplicasCount):
-            logging.debug('Replicas count not changed for the service (%s)', service.name)
+            self.logger.debug('Replicas count not changed for the service (%s)', service.name)
             return
 
         if(newReplicasCount < minReplicas or newReplicasCount > maxReplicas):
-            logging.debug('The limit for decreasing (%s) or increasing (%s) the number of instances for the service (%s) has been reached. NewReplicasCount: %s',
+            self.logger.debug('The limit for decreasing (%s) or increasing (%s) the number of instances for the service (%s) has been reached. NewReplicasCount: %s',
             minReplicas, maxReplicas, service.name, newReplicasCount)
             return
 
-        logging.info("Scale service %s to %s",service.name, newReplicasCount)
+        self.logger.info("Scale service %s to %s",service.name, newReplicasCount)
 
         if(self.dryRun):
             return

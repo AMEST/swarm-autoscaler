@@ -16,6 +16,7 @@ class AutoscalerService(threading.Thread):
         self.minPercentage = minPercentage
         self.maxPercentage = maxPercentage
         self.autoscaleServicePool = ThreadPool(8)
+        self.logger = logging.getLogger("AutoscalerService")
  
     def run(self):
         """
@@ -24,15 +25,15 @@ class AutoscalerService(threading.Thread):
         while True:
             try:
                 if(not self.swarmService.isLeader()):
-                    logging.warning("Instance running not on manager or not on leader")
+                    self.logger.warning("Instance running not on manager or not on leader")
                     time.sleep(60*10) # Wait 10 minute
                     continue
                 services = self.swarmService.getAutoscaleServices()
                 services = services if services != None else []
-                logging.debug("Services len: %s", len(services))
+                self.logger.debug("Services len: %s", len(services))
                 self.autoscaleServicePool.map(self.__autoscale, services)    
             except Exception as e:
-                logging.error("Error in autoscale thread", exc_info=True)
+                self.logger.error("Error in autoscale thread", exc_info=True)
             time.sleep(self.checkInterval)
 
     def __autoscale(self, service):
@@ -51,13 +52,13 @@ class AutoscalerService(threading.Thread):
             Method where calculate mean cpu percentage of service replicas and inc or dec replicas count
         """
         meanCpu = statistics.mean(stats)
-        logging.debug("Mean cpu for service=%s : %s",service.name,meanCpu)
+        self.logger.debug("Mean cpu for service=%s : %s",service.name,meanCpu)
         try:
             if(meanCpu > self.maxPercentage):
                 self.swarmService.scaleService(service, True)
             elif(meanCpu < self.minPercentage):
                 self.swarmService.scaleService(service, False)
             else:
-                logging.debug("Service %s not needed to scale", service.name)
+                self.logger.debug("Service %s not needed to scale", service.name)
         except Exception as e:
-            logging.error("Error while try scale service", exc_info=True)
+            self.logger.error("Error while try scale service", exc_info=True)
