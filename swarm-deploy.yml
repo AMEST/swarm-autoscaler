@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   autoscaler:
-    image: autoscaler:latest
+    image: eluki/swarm-service-autoscaler:latest
     environment:
       - AUTOSCALER_DNSNAME=tasks.autoscaler
       - AUTOSCALER_INTERVAL=60

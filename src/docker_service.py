@@ -1,17 +1,20 @@
 #!/bin/python
 import docker
-from datetime import datetime
 import logging
+from cache import Cache
 
 class DockerService(object):
     AutoscaleLabel = 'swarm.autoscale'
     MaxReplicasLabel = 'swarm.autoscale.max'
     MinReplicasLabel = 'swarm.autoscale.min'
+    DisableManualReplicasControlLabel = 'swarm.autoscale.disable-manual-replicas'
 
-    def __init__(self, dryRun):
+    def __init__(self, memoryCache: Cache, dryRun: bool):
+        self.memoryCache = memoryCache
         self.dryRun = dryRun
         self.dockerClient = docker.from_env()
         self.nodeInfo = self.dockerClient.info()
+        self.logger = logging.getLogger("DockerService")
 
     def isManager(self):
         try:
@@ -41,21 +44,27 @@ class DockerService(object):
             return None
         return list((x['Status']['ContainerStatus']['ContainerID'] for x in tasks))
 
+    def getServiceCpuLimitPercent(self, service):
+        try:
+            return service.attrs.get('Spec').get('TaskTemplate').get('Resources').get('Limits').get('NanoCPUs')/10000000/100
+        except:
+            return -1.0
+
     def getContainerCpuStat(self, containerId, cpuLimit):
         containers = self.dockerClient.containers.list(filters={'id':containerId})
         if(len(containers) == 0):
             return None
-        firstStats = containers[0].stats(stream=False)
-        return self.calculateCpu(firstStats, cpuLimit)
+        containerStats = containers[0].stats(stream=False)
+        return self.__calculateCpu(containerStats, cpuLimit)
 
     def scaleService(self, service, scaleIn = True):
         replicated = service.attrs['Spec']['Mode'].get('Replicated')
         if(replicated == None):
-            logging.error("Cannot scale service %s because is not replicated mode", service.name)
+            self.logger.error("Cannot scale service %s because is not replicated mode", service.name)
             return
         
-        maxReplicasPerNode = self.getServiceMaxReplicasPerNode(service)
-        nodeCount = len(self.dockerClient.nodes.list())
+        maxReplicasPerNode = self.__getServiceMaxReplicasPerNode(service)
+        nodeCount = self.__getNodesCountCached()
 
         maxReplicas = service.attrs['Spec']['Labels'].get(self.MaxReplicasLabel)
         maxReplicas = 15 if maxReplicas == None else int(maxReplicas)
@@ -63,28 +72,37 @@ class DockerService(object):
         minReplicas = service.attrs['Spec']['Labels'].get(self.MinReplicasLabel)
         minReplicas = 2 if minReplicas == None else int(minReplicas)
 
+        disableManualReplicas = service.attrs['Spec']['Labels'].get(self.DisableManualReplicasControlLabel) == 'true'
+
         replicas = replicated['Replicas']
         newReplicasCount = replicas + 1 if scaleIn else replicas - 1
-        if(maxReplicasPerNode != None and (nodeCount * maxReplicasPerNode) < newReplicasCount):
-            logging.warning("There is no required number of nodes to host service (%s) instances. Nodes: %s. MaxReplicasPerNode: %s", service.name, nodeCount, maxReplicasPerNode)
+        if(maxReplicasPerNode != None and maxReplicasPerNode != 0 and (nodeCount * maxReplicasPerNode) < newReplicasCount):
+            self.logger.warning("There is no required number of nodes to host service (%s) instances. Nodes: %s. MaxReplicasPerNode: %s", service.name, nodeCount, maxReplicasPerNode)
             return
 
+        if(disableManualReplicas):
+            if(newReplicasCount < minReplicas):
+                newReplicasCount = minReplicas
+            if(newReplicasCount > maxReplicas):
+                newReplicasCount = maxReplicas
+
         if(replicas == newReplicasCount):
+            self.logger.debug('Replicas count not changed for the service (%s)', service.name)
             return
-        
+
         if(newReplicasCount < minReplicas or newReplicasCount > maxReplicas):
-            logging.debug('The limit for decreasing (%s) or increasing (%s) the number of instances for the service (%s) has been reached. NewReplicasCount: %s',
+            self.logger.debug('The limit for decreasing (%s) or increasing (%s) the number of instances for the service (%s) has been reached. NewReplicasCount: %s',
             minReplicas, maxReplicas, service.name, newReplicasCount)
             return
 
-        logging.info("Scale service %s to %s",service.name, newReplicasCount)
+        self.logger.info("Scale service %s to %s",service.name, newReplicasCount)
 
         if(self.dryRun):
             return
             
         service.scale(newReplicasCount)
         
-    def calculateCpu(self, stats, cpuLimit):
+    def __calculateCpu(self, stats, cpuLimit):
         percent = 0.0
         cpuCount = stats['cpu_stats']['online_cpus']
         cpuDelta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
@@ -99,14 +117,15 @@ class DockerService(object):
             percent = percent / cpuCount
         return percent
 
-    def getServiceMaxReplicasPerNode(self, service):
+    def __getNodesCountCached(self):
+        cacheKey = "nodes_count"
+        nodesCount = self.memoryCache.get(cacheKey)
+        if ( nodesCount != None ):
+            return nodesCount
+        return self.memoryCache.set(cacheKey, len(self.dockerClient.nodes.list()), 30)
+
+    def __getServiceMaxReplicasPerNode(self, service):
         try:
             return service.attrs.get('Spec').get('TaskTemplate').get('Placement').get('MaxReplicas')
         except:
             return None
-
-    def getServiceCpuLimitPercent(self, service):
-        try:
-            return service.attrs.get('Spec').get('TaskTemplate').get('Resources').get('Limits').get('NanoCPUs')/10000000/100
-        except:
-            return -1.0
