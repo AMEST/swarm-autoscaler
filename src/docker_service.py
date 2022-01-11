@@ -28,7 +28,7 @@ class DockerService(object):
             return False
         nodeList = self.dockerClient.nodes.list(filters={'role': 'manager'})
         nodeAddr = self.nodeInfo['Swarm']['NodeAddr']
-        managerLeader = list(x for x in nodeList if x.attrs['ManagerStatus']['Leader'])[0]
+        managerLeader = list(x for x in nodeList if x.attrs['ManagerStatus'].get('Leader'))[0]
         return managerLeader.attrs['ManagerStatus']['Addr'].startswith(nodeAddr)
 
     def getAutoscaleServices(self):
