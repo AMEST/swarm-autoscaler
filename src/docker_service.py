@@ -42,7 +42,7 @@ class DockerService(object):
         tasks = service.tasks({'desired-state':'running'})
         if(len(tasks) == 0):
             return None
-        return list((x['Status']['ContainerStatus']['ContainerID'] for x in tasks))
+        return list((x['Status']['ContainerStatus']['ContainerID'] for x in tasks if x['Status'].get('ContainerStatus') != None)) # Get container Id's only for running containers
 
     def getServiceCpuLimitPercent(self, service):
         try:
