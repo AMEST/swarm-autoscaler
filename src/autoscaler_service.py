@@ -39,6 +39,11 @@ class AutoscalerService(threading.Thread):
     def __autoscale(self, service):
         cpuLimit = self.swarmService.getServiceCpuLimitPercent(service)
         containers = self.swarmService.getServiceContainersId(service)
+
+        if(containers == None or len(containers) == 0):
+            self.logger.warning("No running tasks in service (%s) found" %service.name)
+            return
+
         stats = []
         for id in containers:
             containerStats = self.discovery.getContainerStats(id, cpuLimit)
