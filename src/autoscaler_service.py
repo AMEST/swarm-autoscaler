@@ -4,6 +4,7 @@ import time
 import statistics
 import logging
 from discovery import Discovery
+from decrease_mode_enum import DecreaseModeEnum
 
 from docker_service import DockerService
 
@@ -54,14 +55,20 @@ class AutoscalerService(threading.Thread):
 
     def __scale(self, service, stats):
         """
-            Method where calculate mean cpu percentage of service replicas and inc or dec replicas count
+            Method where calculate mean and max cpu percentage of service replicas and inc or dec replicas count
         """
         meanCpu = statistics.mean(stats)
+        maxCpu = max(stats)
+
+        serviceMaxPercentage = self.swarmService.getServiceMaxPercentage(service, self.maxPercentage)
+        serviceMinPercentage = self.swarmService.getServiceMinPercentage(service, self.minPercentage)
+        serviceDecreaseMode = self.swarmService.getServiceDecreaseMode(service)
+
         self.logger.debug("Mean cpu for service=%s : %s",service.name,meanCpu)
         try:
-            if(meanCpu > self.maxPercentage):
+            if(meanCpu > serviceMaxPercentage):
                 self.swarmService.scaleService(service, True)
-            elif(meanCpu < self.minPercentage):
+            elif( (meanCpu if serviceDecreaseMode == DecreaseModeEnum.MEDIAN else maxCpu) < serviceMinPercentage):
                 self.swarmService.scaleService(service, False)
             else:
                 self.logger.debug("Service %s not needed to scale", service.name)
