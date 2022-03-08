@@ -1,37 +1,65 @@
-## Welcome to GitHub Pages
+# Swarm Service Autoscaler
 
-You can use the [editor on GitHub](https://github.com/AMEST/swarm-autoscaler/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+[![Autoscaller Build](https://github.com/AMEST/swarm-autoscaler/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/AMEST/swarm-autoscaler/actions/workflows/main.yml)
+![hub.docker.com](https://img.shields.io/docker/pulls/eluki/swarm-service-autoscaler.svg)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/amest/swarm-autoscaler)
+![GitHub](https://img.shields.io/github/license/amest/swarm-autoscaler)
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Links  
+* **[Docker hub](https://hub.docker.com/r/eluki/swarm-service-autoscaler)**
 
-### Markdown
+***
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Description
 
-```markdown
-Syntax highlighted code block
+The project is an application that implements the ability to dynamically change the number of service instances under high load. The application receives all services that have the `swarm.autoscale` label enabled, calculates the average value of the CPU utilization and, based on this, either increases the number of instances or decreases it.
 
-# Header 1
-## Header 2
-### Header 3
+Currently, only the CPU is used for autoscaling in the project. By default, if the CPU load reaches 85%, the service will scale, if it reaches 25%, it will be scaled down.   
+But the minimum and maximum values ​​of CPU utilization can be changed through environment variables.
 
-- Bulleted
-- List
+Also, for each service, you can set the maximum and minimum number of replicas to prevent a situation with an uncontrolled increase in the number of replicas (or too much decrease)
 
-1. Numbered
-2. List
+## Usage
 
-**Bold** and _Italic_ and `Code` text
+1. Deploy Swarm Autoscaler using [`swarm-deploy.yml`](swarm-deploy.yml) from this repository
+2. Add label `swarm.autoscale=true` for services you want to autoscale. 
 
-[Link](url) and ![Image](src)
+```yml
+deploy:
+  labels:
+    - "swarm.autoscale=true"
 ```
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+For better resource management, it is recommended to add resource constraints to your service. Then it will definitely not eat more resources than necessary, and auto-scaling will work much better and will save resources in idle time.
 
-### Jekyll Themes
+```yml
+deploy:
+  resources:
+    limits:
+      cpus: '0.50'
+```
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/AMEST/swarm-autoscaler/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+## Configuration
 
-### Support or Contact
+### Swarm Autoscaler configuration
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+_**The application is configured through environment variables**_
+
+| Setting                     | Default Value      | Description                                                                             |
+| --------------------------- | ------------------ | --------------------------------------------------------------------------------------- |
+| `AUTOSCALER_MIN_PERCENTAGE` | 25.0               | minimum service cpu utilization value in percent (0.0-100.0) for decrease service       |
+| `AUTOSCALER_MAX_PERCENTAGE` | 85.0               | maximum service cpu utilization value in percent (0.0-100.0) for increase service       |
+| `AUTOSCALER_DNSNAME`        | `tasks.autoscaler` | swarm service name for in stack communication                                           |
+| `AUTOSCALER_INTERVAL`       | 300                | interval between checks in seconds                                                      |
+| `AUTOSCALER_DRYRUN`         | false              | noop mode for check service functional without enable inc or dec service replicas count |
+
+### Services configuration
+
+_**Services in docker swarm are configured via labels**_
+
+| Setting                                   | Value   | Default | Description                                                                                                                                                                                |
+| ----------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `swarm.autoscale`                         | Boolean | `false` | Required. This enables autoscaling for a service. Anything other than `true` will not enable it                                                                                            |
+| `swarm.autoscale.min`                     | Integer | `2`     | Optional. This is the minimum number of replicas wanted for a service. The autoscaler will not downscale below this number                                                                 |
+| `swarm.autoscale.max`                     | Integer | `15`    | Optional. This is the maximum number of replicas wanted for a service. The autoscaler will not scale up past this number                                                                   |
+| `swarm.autoscale.disable-manual-replicas` | Boolean | `false` | Optional. Disable manual control of replicas. It will no longer be possible to manually set the number of replicas more or less than the limit. Anything other than `true` will not enable |
