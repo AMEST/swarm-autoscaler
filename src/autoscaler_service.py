@@ -55,9 +55,9 @@ class AutoscalerService(threading.Thread):
 
     def __scale(self, service, stats):
         """
-            Method where calculate mean and max cpu percentage of service replicas and inc or dec replicas count
+            Method where calculate median and max cpu percentage of service replicas and inc or dec replicas count
         """
-        meanCpu = statistics.mean(stats)
+        meanCpu = statistics.median(stats)
         maxCpu = max(stats)
 
         serviceMaxPercentage = self.swarmService.getServiceMaxPercentage(service, self.maxPercentage)

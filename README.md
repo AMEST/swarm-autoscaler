@@ -48,8 +48,8 @@ _**The application is configured through environment variables**_
 
 | Setting                     | Default Value      | Description                                                                             |
 | --------------------------- | ------------------ | --------------------------------------------------------------------------------------- |
-| `AUTOSCALER_MIN_PERCENTAGE` | 25.0               | minimum service cpu utilization value in percent (0.0-100.0) for decrease replicas      |
-| `AUTOSCALER_MAX_PERCENTAGE` | 85.0               | maximum service cpu utilization value in percent (0.0-100.0) for increase replicas      |
+| `AUTOSCALER_MIN_PERCENTAGE` | 25                 | minimum service cpu utilization value in percent (0-100) for decrease replicas          |
+| `AUTOSCALER_MAX_PERCENTAGE` | 85                 | maximum service cpu utilization value in percent (0-100) for increase replicas          |
 | `AUTOSCALER_DNSNAME`        | `tasks.autoscaler` | swarm service name for in stack communication                                           |
 | `AUTOSCALER_INTERVAL`       | 300                | interval between checks in seconds                                                      |
 | `AUTOSCALER_DRYRUN`         | false              | noop mode for check service functional without enable inc or dec service replicas count |
@@ -65,5 +65,5 @@ _**Services in docker swarm are configured via labels**_
 | `swarm.autoscale.max`                     | Integer | `15`                        | Optional. This is the maximum number of replicas wanted for a service. The autoscaler will not scale up past this number                                                                   |
 | `swarm.autoscale.disable-manual-replicas` | Boolean | `false`                     | Optional. Disable manual control of replicas. It will no longer be possible to manually set the number of replicas more or less than the limit. Anything other than `true` will not enable |
 | `swarm.autoscale.percentage-max`          | Integer | `AUTOSCALER_MAX_PERCENTAGE` | Optional. Custom maximum service cpu utilization for increase replicas                                                                                                                     |
-| `swarm.autoscale.percentage-min`          | Boolean | `AUTOSCALER_MIN_PERCENTAGE` | Optional. Custom minimum service cpu utilization for decrease replicas                                                                                                                     |
-| `swarm.autoscale.decrease-mode`           | Boolean | `MEDIAN`                    | Optional. Service utilization calculation mode to decrease replicas. Modes: `MEDIAN`, `MAX`                                                                                                |
+| `swarm.autoscale.percentage-min`          | Integer | `AUTOSCALER_MIN_PERCENTAGE` | Optional. Custom minimum service cpu utilization for decrease replicas                                                                                                                     |
+| `swarm.autoscale.decrease-mode`           | String  | `MEDIAN`                    | Optional. Service utilization calculation mode to decrease replicas. Modes: `MEDIAN`, `MAX`                                                                                                |
