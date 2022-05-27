@@ -2,12 +2,16 @@
 import docker
 import logging
 from cache import Cache
+from decrease_mode_enum import DecreaseModeEnum
 
 class DockerService(object):
     AutoscaleLabel = 'swarm.autoscale'
     MaxReplicasLabel = 'swarm.autoscale.max'
     MinReplicasLabel = 'swarm.autoscale.min'
     DisableManualReplicasControlLabel = 'swarm.autoscale.disable-manual-replicas'
+    MaxPercentageLabel = 'swarm.autoscale.percentage-max'
+    MinPercentageLabel = 'swarm.autoscale.percentage-min'
+    DecreaseModeLabel = 'swarm.autoscale.decrease-mode'
 
     def __init__(self, memoryCache: Cache, dryRun: bool):
         self.memoryCache = memoryCache
@@ -49,6 +53,24 @@ class DockerService(object):
             return service.attrs.get('Spec').get('TaskTemplate').get('Resources').get('Limits').get('NanoCPUs')/10000000/100
         except:
             return -1.0
+
+    def getServiceMaxPercentage(self, service, default = None):
+        try:
+            return int(service.attrs.get('Spec').get('Labels').get(self.MaxPercentageLabel))
+        except:
+            return default
+
+    def getServiceMinPercentage(self, service, default = None):
+        try:
+            return int(service.attrs.get('Spec').get('Labels').get(self.MinPercentageLabel))
+        except:
+            return default
+
+    def getServiceDecreaseMode(self, service, default = DecreaseModeEnum.MEDIAN):
+        try:
+            return DecreaseModeEnum[service.attrs.get('Spec').get('Labels').get(self.DecreaseModeLabel).upper()]
+        except:
+            return default
 
     def getContainerCpuStat(self, containerId, cpuLimit):
         containers = self.dockerClient.containers.list(filters={'id':containerId})
