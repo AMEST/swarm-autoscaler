@@ -65,6 +65,8 @@ class AutoscalerService(threading.Thread):
         serviceDecreaseMode = self.swarmService.getServiceDecreaseMode(service)
 
         self.logger.debug("Mean cpu for service=%s : %s",service.name,meanCpu)
+        self.logger.debug("Max cpu for service=%s : %s",service.name,maxCpu)
+            
         try:
             if(meanCpu > serviceMaxPercentage):
                 self.swarmService.scaleService(service, True)
