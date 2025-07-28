@@ -52,7 +52,7 @@ _**The application is configured through environment variables**_
 | `AUTOSCALER_MAX_PERCENTAGE` | 85                 | maximum service cpu utilization value in percent (0-100) for increase replicas          |
 | `AUTOSCALER_DNSNAME`        | `tasks.autoscaler` | swarm service name for in stack communication                                           |
 | `AUTOSCALER_INTERVAL`       | 300                | interval between checks in seconds                                                      |
-| `AUTOSCALER_DRYRUN`         | false              | noop mode for check service functional without enable inc or dec service replicas count |
+| `AUTOSCALER_DRYRUN`         | UNSET              | noop mode for check service functional without enable increment or decrement service replicas count. If environment variable set with any value - DryRun enabled. For disable need unset environment variable  |
 
 ### Services configuration
 
