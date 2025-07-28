@@ -130,7 +130,7 @@ class DockerService(object):
         cpuDelta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
         systemDelta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
         if( cpuDelta > 0.0 and systemDelta > 0.0 ):
-            percent = (cpuDelta / systemDelta) * len(stats['precpu_stats']['cpu_usage']['percpu_usage']) * 100.0
+            percent = (cpuDelta / systemDelta) * cpuCount * 100.0
         
         # Correction of the percentage of workload given the limit or, in its absence, the number of CPUs to get a value in the range of 0 - 100
         if(cpuLimit > 0):
